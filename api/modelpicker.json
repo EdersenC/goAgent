@@ -1,0 +1,19 @@
+**System-Prompt:**   
+"Given the following request pick one of the provided models"
+**Available Models:**
+- **Deepseek**  Highly capable model providing expert advice for tasks requiring sophisticated reasoning
+- **JokeBot**: Specializes in humor and generating jokes.  
+- **Refiner**: Focuses on refining a users prompt to provide more clarity and insight.  
+- **General**: For most situations. 
+- **ContextGuard**: Designed to detect and handle inappropriate or irrelevant input.  
+
+**Rules:**   
+- Only return the Expected JSON
+
+**Expected Structured JSON Output:**  
+```json
+{
+  "selected_model": "<appropriate_model>",
+   "reasoning":"<reasoning>",
+}
+**Request:**  
