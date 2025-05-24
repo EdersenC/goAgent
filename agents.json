@@ -1,0 +1,46 @@
+{
+  "Planner": {
+    "name": "Planner",
+    "description": "Responsible for decomposing complex objectives into step-by-step tasks. Best suited for multi-step planning, workflows, and strategy generation.\n\nExample prompts:\n- 'Plan a 3-day trip to Tokyo.'\n- 'Break down how to launch a SaaS product.'\n- 'Create a weekly workout plan.'",
+    "model": "llama3.2:latest",
+    "provider": {
+      "baseurl": "http://localhost:11434",
+      "generateendpoint": "/api/generate",
+      "chatendpoint": "/api/chat",
+      "apiKey": ""
+    }
+  },
+  "Searcher": {
+    "name": "Searcher",
+    "model": "llama3.2:latest",
+    "description": "**[REAL-TIME DATA ACCESS REQUIRED]** Performs live lookups for up-to-date, changing, or external information. Use this when the answer depends on current facts or events.\n\nExample prompts:\n- 'What is the weather outside right now?'\n- 'Who is the president of the U.S. today?'\n- 'What are the latest headlines in tech?'\n- 'What time is it in Tokyo currently?'",
+    "provider": {
+      "baseurl": "http://localhost:11434",
+      "generateendpoint": "/api/generate",
+      "chatendpoint": "/api/chat",
+      "apiKey": ""
+    }
+  },
+  "Generalist": {
+    "name": "Generalist",
+    "description": "Handles general reasoning, summaries, explanations, and internal knowledge. **Avoid this for real-time or dynamic data (e.g., weather, news, stock prices).**\n\nExample prompts:\n- 'Explain how thunderstorms form.'\n- 'Write an essay about climate change.'\n- 'Summarize the plot of Inception.'\n- 'What are the effects of caffeine on the brain?'",
+    "model": "llama3.2:latest",
+    "provider": {
+      "baseurl": "http://localhost:11434",
+      "generateendpoint": "/api/generate",
+      "chatendpoint": "/api/chat",
+      "apiKey": ""
+    }
+  },
+  "Synthesizer": {
+    "name": "Synthesizer",
+    "description": "Combines insights from multiple agents or sources into a coherent, final response. Used after planning, search, or reasoning steps to produce a unified answer.\n\nExample prompts:\n- 'Summarize the plan and include the most up-to-date facts.'\n- 'Combine the research and generate a final report.'\n- 'Give me the conclusion from the planner and searcher results.'",
+    "model": "gemma3:4b",
+    "provider": {
+      "baseurl": "http://localhost:11434",
+      "generateendpoint": "/api/generate",
+      "chatendpoint": "/api/chat",
+      "apiKey": ""
+    }
+  }
+}

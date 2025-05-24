@@ -1,32 +1,31 @@
 package api
 
-import(
-    "encoding/json"
-    "fmt"
-    "time"
-    "io"
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"time"
 )
 
 func DecodeChatResponse(body io.Reader) (*ChatResponse, error) {
-    // Read the entire response body
-    bodyBytes, err := io.ReadAll(body)
-    if err != nil {
-        return nil, fmt.Errorf("failed to read response body: %w", err)
-    }
+	// Read the entire response body
+	bodyBytes, err := io.ReadAll(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
-    // Convert body to string and print it
-    bodyString := string(bodyBytes)
-    fmt.Println("\n\nResponse Body:", bodyString)
+	// Convert body to string and print it
+	bodyString := string(bodyBytes)
+	fmt.Println("\n\nResponse Body:", bodyString)
 
-    // Decode the JSON response into ChatResponse struct
-    var response ChatResponse
-    if err := json.Unmarshal(bodyBytes, &response); err != nil {
-        return nil, fmt.Errorf("failed to decode JSON response: %w", err)
-    }
+	// Decode the JSON response into ChatResponse struct
+	var response ChatResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
+	}
 
-    return &response, nil
+	return &response, nil
 }
-
 
 func (cr *ChatResponse) PrintResponse() {
 	fmt.Printf("Model: %s\n", cr.Model)
@@ -46,4 +45,3 @@ func (cr *ChatResponse) PrintResponse() {
 		}
 	}
 }
-

@@ -1,18 +1,11 @@
 package tools
 
-import (
-	"github.com/EdersenC/gigaAi/api"
-)
+import "fmt"
 
-
-
-func NewHandOff(agent *api.Agent, parameters api.ToolParameters) *api.Tool {
-    return &api.Tool{
-        Type: "function",
-        Function: api.ToolFunction{
-            Name: "Handoff",
-            Description: ``,
-            Parameters: parameters,
-        },
-    }
+func HandOff(map[string]interface{}) map[string]interface{} {
+	fmt.Println("Hand off function called")
+	return map[string]interface{}{
+		"status":  "success",
+		"message": "Hand off completed successfully",
+	}
 }
