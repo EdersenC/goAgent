@@ -1,0 +1,38 @@
+{
+  "type": "function",
+  "function": {
+    "name": "search",
+    "description": "Access real-time web information using DuckDuckGo. Use this when the user asks about events, facts, or updates that may have occurred after your general knowledge cutoff — or when fresh, external data is clearly needed. Your goal is to generate 1 to 10 high-quality queries that reflect the user's actual intent. Think carefully about what the user is asking, and design queries that match both their topic and intent.",
+    "examples": [
+      "User: What are the impacts of climate change on agriculture?\nQueries:\n- 'climate change effects on crop yield'\n- 'drought impact on farming'\n- 'global warming agriculture 2024'",
+      "User: What are two major companies doing in AI?\nQueries:\n- 'Company A AI research 2024'\n- 'Company B machine learning initiatives'\n- 'Company A and Company B AI collaboration'",
+      "User: What's the latest news on the Boeing investigation?\nQueries:\n- 'Boeing investigation update May 2025'\n- 'Boeing safety report 2025'\n- 'FAA Boeing investigation status 2025'"
+    ],
+    "constraints": [
+      "Only generate as many queries as necessary — avoid filler or duplication.",
+      "Use one query when the user is asking a specific, factual question.",
+      "When multiple entities are mentioned together, include at least one query that references both together.",
+      "Avoid vague language. Be specific and context-aware.",
+      "Use this function when a question involves recent or time-sensitive information likely to fall outside your general training data.",
+      "**Always prefer using this function over guessing when your internal knowledge may be outdated, incomplete, or uncertain. You have reliable access to real-time search and should not claim otherwise.**"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "queries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of 1 to 10 well-phrased search queries. Use a single query for specific factual questions, or multiple queries to explore broader topics from different angles."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Explain the logic behind the generated queries: why these specific queries were chosen and how they connect to the user's original request."
+        }
+      },
+      "required": ["queries", "reason"]
+    }
+  }
+}
+

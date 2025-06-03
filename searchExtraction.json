@@ -1,0 +1,48 @@
+{
+  "type": "function",
+  "function": {
+    "name": "searchExtraction",
+    "description": "From raw page or document **content**, extract the sentences, full paragraphs, or tabular data that directly answer the user's **query** / intent. Return an array of **citations** (with extracted content + source URL), and an overall concise **summary** that synthesizes the extracted information.",
+    "examples": [
+      "User: When did the Eiffel Tower open to the public?\nContent: [large HTML/text blob]\n→ Output:\n{\n  \"citations\": [\n    {\n      \"content\": \"The Eiffel Tower first opened to visitors on May 6 1889.\",\n      \"url\": \"https://en.wikipedia.org/wiki/Eiffel_Tower\"\n    }\n  ],\n  \"summary\": \"The Eiffel Tower officially opened to the public on May 6, 1889, marking a significant event in Parisian history.\"\n}",
+
+      "User: Key provisions of the 2025 Paris climate-accord update.\nContent: [news article text]\n→ Output:\n{\n  \"citations\": [\n    {\n      \"content\": \"The 2025 update sets a global target of net-zero emissions by 2050.\",\n      \"url\": \"https://news-site.com/article\"\n    },\n    {\n      \"content\": \"It introduces a $100 billion annual fund to help developing nations adapt.\",\n      \"url\": \"https://news-site.com/article\"\n    }\n  ],\n  \"summary\": \"The 2025 update to the Paris climate accord establishes a net-zero target by 2050 and includes a $100 billion annual adaptation fund for developing countries.\"\n}"
+    ],
+    "constraints": [
+      "Return a **JSON object** matching the ExtractionResult format.",
+      "Citations array should contain up to 5 **high-quality, directly relevant** extracts.",
+      "Each Citation must include: `content` and `url`.",
+      "Summary must be **concise and factual**, synthesizing the extracted points into 2-4 sentences.",
+      "Do **not** add extra commentary beyond the requested summary.",
+      "If no relevant content is found, return: `{ \"citations\": [], \"summary\": \"NO_RELEVANT_CONTENT_FOUND\" }`.",
+      "Content field in citations should preserve full original sentences or paragraphs — no partial truncation."
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "description": "Full sentence or paragraph extracted from the content."
+              },
+              "url": {
+                "type": "string",
+                "description": "Source URL for the extracted content."
+              }
+            },
+            "required": ["content", "url"]
+          }
+        },
+        "summary": {
+          "type": "string",
+          "description": "A concise 2-4 sentence summary of the key points extracted, written in Markdown."
+        }
+      },
+      "required": ["citations", "summary"]
+    }
+  }
+}

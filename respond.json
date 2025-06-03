@@ -1,0 +1,17 @@
+{
+  "type": "function",
+  "function": {
+    "name": "response",
+    "description": "Use this tool to communicate directly with the user. It is your default tool for generating text, answering questions, summarizing results, explaining reasoning, or responding conversationally.\n\nUse this tool for:\n- Personal requests (e.g., 'Write a short story', 'Summarize this text', 'Explain quantum physics')\n- Creative or reflective tasks\n- Internal knowledge or reasoning\n- Clarifications or follow-up messages\n\nOnly call external tools like 'search' if the user asks for real-time, fact-based, or current information (e.g., 'What’s the weather today?', 'Recent news about X', or anything past your training cutoff). Then use 'response' to deliver results back to the user.\n\nIf you are unsure whether to act or ask, call 'response' to ask for clarification.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "The message or response intended for the user."
+        }
+      },
+      "required": ["message"]
+    }
+  }
+}

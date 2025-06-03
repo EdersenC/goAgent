@@ -1,0 +1,34 @@
+{
+  "type": "function",
+  "function": {
+    "name": "searchExtractor",
+    "description": "Given a user **query** and raw **content**, pull out only the sentences, full paragraphs, or (when appropriate) tabular data that directly answer the query. Return them in compact, citation-ready Markdown so downstream agents work from verified snippets, tables, or chart suggestions instead of whole documents.",
+    "examples": [
+      "User: When did the Eiffel Tower open to the public?\nContent: [HTML/text blob]\n→ Output:\n- \"> The Eiffel Tower first opened to visitors on **6 May 1889**.\" (source: https://en.wikipedia.org/wiki/Eiffel_Tower)",
+
+      "User: What are the net-zero target years pledged by the G7 countries?\nContent: [news article with a bullet list]\n→ Output:\n| Country | Net-zero target year | Source |\n|---------|---------------------|--------|\n| Canada  | 2050 | https://example.com/g7-climate |\n| France  | 2050 | https://example.com/g7-climate |\n| Germany | 2045 | https://example.com/g7-climate |",
+
+      "User: Compare 2024 GDP (USD trillions) for the US, China, and Japan.\nContent: [IMF data table]\n→ Output:\n| Country | 2024 GDP (T$) | Source |\n|---------|---------------|--------|\n| United States | 28.7 | https://imf.org/db2024 |\n| China | 21.6 | https://imf.org/db2024 |\n| Japan | 5.4 | https://imf.org/db2024 |\n\n**Suggested chart:** Create a bar chart comparing 2024 GDP for the three countries."
+    ],
+    "constraints": [
+      "Output must be **valid Markdown**.",
+      "Provide a bullet list (`-`) of quoted extracts *or* a Markdown table when multiple comparable data points are present.",
+      "Include **up to 5** extracts or rows; favor direct relevance over volume.",
+      "Preserve original wording inside each extract—no truncating within sentences.",
+      "Put each extract’s source in parentheses, or in a dedicated `Source` column for tables.",
+      "Optionally add one line beginning with `**Suggested chart:**` when a simple visual (e.g., bar, line) would quickly convey quantitative comparisons.",
+      "If no relevant content exists, return exactly `NO_RELEVANT_CONTENT_FOUND`.",
+      "Do **not** add extra commentary beyond the allowed chart suggestion."
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "extracts": {
+          "type": "string",
+          "description": "Markdown-formatted bullet list or table of extracts with sources. May include an optional '**Suggested chart:**' line."
+        }
+      },
+      "required": ["extracts"]
+    }
+  }
+}
