@@ -1,4 +1,4 @@
-package api
+package goAgent
 
 import (
 	"encoding/json"
@@ -23,7 +23,7 @@ func ReadJSONFile(file *os.File) ([]byte, error) {
 	return data, nil
 }
 
-// BindJSON reads a JSON file and unmarshals it into the provided target
+// BindJSON reads a JSON file and unmarshal it into the provided target
 func BindJSON(file *os.File, target interface{}) error {
 	data, err := ReadJSONFile(file)
 

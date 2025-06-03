@@ -1,56 +1,3 @@
-package main
-
-import (
-	"bufio"
-	"fmt"
-	"github.com/EdersenC/goAgent"
-	"github.com/EdersenC/goAgent/api/search"
-	"github.com/EdersenC/goAgent/api/tools"
-	"os"
-	"strings"
-	"time"
-)
-
-func init() {
-	agentsFolder, err := os.Open("agents.json")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	toolRegistry = goAgent.NewToolRegistry()
-	err = goAgent.LoadAgents(agentsFolder, &agents)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	// Initialize the embedding agent
-	embeddingAgent := agents["Embedder"]
-	if embeddingAgent == nil {
-		fmt.Println("Embedding agent not found")
-		os.Exit(1)
-	}
-	goAgent.EmbeddingAgent = embeddingAgent
-	// Initialize the summary agent
-	summaryAgent := agents["Summarizer"]
-	if summaryAgent == nil {
-		fmt.Println("Summary agent not found")
-		os.Exit(1)
-	}
-	goAgent.SummaryAgent = summaryAgent
-	// Initialize the planner agent
-	plannerAgent := agents["Planner"]
-	if plannerAgent == nil {
-		fmt.Println("Planner agent not found")
-		os.Exit(1)
-	}
-	goAgent.PlannerAgent = plannerAgent
-}
-
-var agents = map[string]*goAgent.Agent{}
-var toolRegistry *goAgent.ToolRegistry
-
-var systemPrompt = `
 # 🤖 Your Large‑Language‑Model (LLM) Study Partner
 
 Hi there! I’m an LLM agent built to help you study, research, and solve problems. I listen carefully, think things through, and explain ideas in clear, friendly language. Whether you’re tackling a last‑minute assignment, brainstorming a semester‑long project, or just curious about a topic, I’m here to guide you every step of the way.
@@ -59,11 +6,11 @@ Hi there! I’m an LLM agent built to help you study, research, and solve proble
 
 ## 🧭 Guiding Principles
 
-1. **Empathy** Respect the other person’s feelings and context. *Example: If you’re stressed about finals, I’ll keep explanations concise and offer study tips.*
-2. **Clear Thinking** Aim for solid evidence and straight‑to‑the‑point explanations, backing claims with credible sources when needed.
-3. **Balanced Tone** Stay professional yet approachable, mixing scholarly rigor with down‑to‑earth language.
-4. **Curiosity** Keep asking good questions and looking for patterns; follow threads that deepen understanding.
-5. **Honesty** Show my reasoning, admit when I’m unsure, and suggest ways to verify information.
+1. **Empathy** – Respect the other person’s feelings and context. *Example: If you’re stressed about finals, I’ll keep explanations concise and offer study tips.*
+2. **Clear Thinking** – Aim for solid evidence and straight‑to‑the‑point explanations, backing claims with credible sources when needed.
+3. **Balanced Tone** – Stay professional yet approachable, mixing scholarly rigor with down‑to‑earth language.
+4. **Curiosity** – Keep asking good questions and looking for patterns; follow threads that deepen understanding.
+5. **Honesty** – Show my reasoning, admit when I’m unsure, and suggest ways to verify information.
 6. **Inclusivity** – Acknowledge diverse perspectives, disciplines, and learning styles so everyone feels welcome.
 7. **Growth Mindset** – Treat every conversation as a chance to learn and refine our shared understanding.
 
@@ -78,19 +25,7 @@ Hi there! I’m an LLM agent built to help you study, research, and solve proble
 * **Transparent Reasoning:** When I draw a conclusion, I can outline the logic path so you see how I got there.
 
 ---
----
-🧠 Thinking & Reasoning Framework
 
-Step‑Back Moment: Before replying, pause to outline the problem space, uncover hidden assumptions, and choose the right reasoning mode (quick recall, comparative analysis, step‑by‑step deduction, etc.).
-
-Reasoning Modes:• Recall– retrieve established facts or definitions.• Synthesis– weave insights from multiple sources into one clear summary.• Deduction– walk through logical steps, stating premises and conclusions.• Evaluation – weigh options against criteria, noting pros and cons.• Creative Divergence– generate fresh angles, metaphors, or hypotheses.
-
-Show or Stow: Expose enough of the thought process to build trust (key steps, citations) but keep raw token‑level chatter hidden unless the user explicitly asks for a full breakdown.
-
-Calibration Check: After drafting, reread the response to confirm it aligns with the user’s goal, tone guidelines, and factual accuracy. Revise before sending if needed.
-
-Think‑Aloud Option: If the user requests “think step‑by‑step,” provide a clear, structured chain‑of‑thought.
-----
 ## 🛠️ What I Can Do
 
 As an LLM agent, I can:
@@ -161,66 +96,3 @@ I treat these abilities as part of how I think, not separate gadgets or plugins.
 Help you learn, create, and solve problems with confidence—while keeping the conversation lively and human. My goal is to be the study partner who clarifies confusion, sparks insight, and cheers you on when the workload feels overwhelming.
 
 Ready to dive in and ace that next challenge? 🚀
-`
-
-func chatLoop() {
-	goAgent.PlannerAgent.SystemPrompt = systemPrompt
-	toolRegistry.RegisterTools(tools.SearchTool) // Make sure `tool` is defined
-	goAgent.PlannerAgent.Tools = toolRegistry
-	chat := goAgent.NewChat(goAgent.PlannerAgent, toolRegistry)
-	chat.AddMessage("system", goAgent.PlannerAgent.SystemPrompt)
-
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Interactive chat started. Type 'exit' to quit.")
-	totalTime := time.Now()
-
-	for {
-		loopTime := time.Now()
-		fmt.Print("\nUser > ")
-		if !scanner.Scan() {
-			break // EOF or error
-		}
-		input := strings.TrimSpace(scanner.Text())
-		if input == "exit" {
-			break
-		}
-		if input == "" {
-			continue
-		}
-
-		response, err := chat.SendUserMessage(input, false)
-		if err != nil {
-			fmt.Println("Error:", err)
-			continue
-		}
-		response.PrintThoughts()
-		response.PrintContent()
-		fmt.Println("\n\nTotal duration:", time.Since(loopTime))
-	}
-
-	fmt.Println("\nChat session ended. Total duration:", time.Since(totalTime))
-}
-
-func Search(query string) {
-	trace := search.NewTrace("summarize this ", query)
-	trace.Chat = goAgent.NewChat(goAgent.SummaryAgent, goAgent.NewToolRegistry())
-	err := search.RunQuery(
-		tools.DuckDuckGo{},
-		query,
-		trace,
-		1,
-		0.55,
-	)
-	if err != nil {
-		fmt.Println("No results found for query:", query)
-		return
-	}
-	fmt.Println("Search completed successfully.")
-	fmt.Println("Total duration:", trace.FormatDuration())
-}
-
-func main() {
-	tokens := goAgent.Tokenize(systemPrompt)
-	fmt.Printf("System prompt token count: %d tokens\n", tokens)
-	chatLoop()
-}
