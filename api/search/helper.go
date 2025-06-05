@@ -7,11 +7,13 @@ import (
 	"strings"
 )
 
+// ExtractionResult holds the result of an extraction operation, including citations and a summary.
 type ExtractionResult struct {
 	Citations []Citation `json:"citations"`
 	Summary   string     `json:"summary"`
 }
 
+// JoinCitations formats the citations into a single string for easy display.
 func (ex ExtractionResult) JoinCitations() string {
 	var sb strings.Builder
 	for _, citation := range ex.Citations {
@@ -20,6 +22,7 @@ func (ex ExtractionResult) JoinCitations() string {
 	return sb.String()
 }
 
+// newExtractionResult creates a new ExtractionResult with the provided citations and summary.
 func newExtractionResult(citations []Citation, summary string) *ExtractionResult {
 	return &ExtractionResult{
 		Citations: citations,
@@ -27,6 +30,7 @@ func newExtractionResult(citations []Citation, summary string) *ExtractionResult
 	}
 }
 
+// Citation represents a single citation with its content, URL, and relevance score.
 type Citation struct {
 	Content   string  `json:"content,extracted_content"`
 	URL       string  `json:"url,source"`
@@ -74,6 +78,7 @@ func summariseChunk(chunk, instructions string, maxContext int,
 	return "", fmt.Errorf("unreachable")
 }
 
+// ProcessChunks processes a slice of chunks, summarizing each one using the provided chat context and instructions.
 func ProcessChunks(chunks []string, chat *goAgent.Chat,
 	instructions string, maxContext int) []string {
 
@@ -89,6 +94,7 @@ func ProcessChunks(chunks []string, chat *goAgent.Chat,
 	return results
 }
 
+// ReviewExtraction extracts citations and summary from the response map.
 func ReviewExtraction(response map[string]interface{}, chat *goAgent.Chat) (map[string]interface{}, error) {
 	arguments, ok := response["arguments"].(map[string]interface{})
 	if !ok {
@@ -114,6 +120,7 @@ func ReviewExtraction(response map[string]interface{}, chat *goAgent.Chat) (map[
 	return result, nil
 }
 
+// buildPrompt constructs a prompt string by combining the instruction and content.
 func buildPrompt(instr, content string) string {
 	return fmt.Sprintf("%s\n\nExtract key information:\n\n%s", instr, content)
 }

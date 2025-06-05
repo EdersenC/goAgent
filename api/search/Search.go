@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// ScrapeContentInto fetches the content of the Result's URL,
+// extracts text from <p> tags, and embeds it using the EmbeddingAgent.
+// It returns an error if the URL is not HTTPS or if scraping fails.
 func (r *Result) ScrapeContentInto() error {
 	if !strings.HasPrefix(r.URL, "https://") {
 		return fmt.Errorf("skipping non-HTTPS URL: %s", r.URL)
@@ -56,6 +59,8 @@ func (r *Result) ScrapeContentInto() error {
 	return nil
 }
 
+// cosineSimilarity calculates the cosine similarity between two vectors.
+// It returns a value between -1 and 1, where 1 means identical vectors,
 func cosineSimilarity(a, b []float64) float64 {
 	var dot, normA, normB float64
 	for i := range a {
@@ -69,6 +74,8 @@ func cosineSimilarity(a, b []float64) float64 {
 	return dot / (math.Sqrt(normA) * math.Sqrt(normB))
 }
 
+// AverageComboScore computes the average cosine similarity score
+// between all pairs of embeddings from two slices: embeddings and match.
 func AverageComboScore(embeddings, match []*goAgent.EmbeddedContent) float64 {
 	totalScore := 0.0
 	totalComparisons := 0
@@ -101,6 +108,9 @@ func AverageComboScore(embeddings, match []*goAgent.EmbeddedContent) float64 {
 	return totalScore / float64(totalComparisons)
 }
 
+// rankByRelevance ranks search results based on their relevance to a query.
+// It uses the EmbeddingAgent to embed the query and compares it against
+// the embedded content of each result using cosine similarity.
 func rankByRelevance(results []*Result, query string, minimumThreshHold float64) ([]*Result, error) {
 	minimumThreshHold = minimumThreshHold / 100.0 // Convert to a 0-1 scale
 	embedding, err := goAgent.EmbeddingAgent.Embed(query)
@@ -142,18 +152,8 @@ func init() {
 }
 
 // handlePage processes a single page of search results.
-// It first checks the cache, then performs a search if needed,
-// scrapes, ranks, summarizes, and prints the results.
-//
-// Parameters:
-//   - engine: the search engine used to query.
-//   - query: the string query.
-//   - page: which page of results to retrieve.
-//   - minimumRelevancy: relevance score cutoff.
-//
-// Returns:
-//   - a slice of ranked Result pointers for the given page
-//   - an error if ranking or search fails.
+// It checks the cache for existing results, performs a search if not found,
+// scrapes the content, ranks the results by relevance, and summarizes them.
 func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRelevancy float64) ([]*Result, error) {
 	if cachedResults, found := cache[query]; found {
 		fmt.Printf("\n\nUsing cached results for query: %s, page: %d\n\n", query, page)
@@ -193,16 +193,15 @@ func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRel
 	)
 
 	var wg sync.WaitGroup
-	jobs := make(chan *Result, len(rankedResults)) // buffered channel to hold all jobs
+	jobs := make(chan *Result, len(rankedResults))
 
-	// Start N workers
 	for w := 0; w < len(tracer.SummaryAgents); w++ {
 		go func(workerID int) {
 			chat := goAgent.NewChat(tracer.SummaryAgents[workerID], goAgent.NewToolRegistry(newExtraction))
 			for result := range jobs { // pull jobs from the channel
 				fmt.Printf("Worker %d summarizing: %s URL: %s\n", workerID, result.Title, result.URL)
 				result.Summarize(
-					chat, // worker-specific Chat instance
+					chat,
 					message,
 					chat.Agent.ContextPortion(75),
 				)
@@ -211,34 +210,21 @@ func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRel
 		}(w)
 	}
 
-	// Add jobs to the channel
 	for i := range rankedResults {
 		wg.Add(1)
 		jobs <- rankedResults[i]
 	}
 
-	close(jobs) // Close channel so workers know there are no more jobs
-	wg.Wait()   // Wait for all jobs to finish
+	close(jobs)
+	wg.Wait()
 
 	tracer.Chat.Agent.SwapRegistry(agentTools) // Restore original tools after summarization
 	tracer.Chat.ToolRegistry.Swap(ToolRegistry)
 	return rankedResults, nil
 }
 
-// RunQuery executes a multipart search query using the provided engine.
-// For each page, it either retrieves cached results or performs a fresh search,
-// scrapes and ranks the results, summarizes the content, and prints the output.
-// Results are filtered by a minimum relevance score.
-//
-// Parameters:
-//   - engine: the search engine implementation used for querying.
-//   - query: the string query to search for.
-//   - pages: the number of result pages to retrieve.
-//   - minimumRelevancy: the threshold for including results based on relevance.
-//
-// Returns:
-//   - a slice of ranked and summarized Result pointers
-//   - an error if something fails (non-fatal errors are logged, not returned).
+// RunQuery executes a search query using the specified engine and tracer.
+// It handles pagination, caches results, and summarizes the findings.
 func RunQuery(engine Engine, query string, tracer *Trace, pages int, minimumRelevancy float64) error {
 	allRankedResults := make([]*Result, 0)
 	start := time.Now()
@@ -265,14 +251,8 @@ func (t *Trace) Summarize(chat *goAgent.Chat) string {
 	return ""
 }
 
-// scrapeAll iterates over search results and scrapes their content.
-// It logs individual scraping errors but continues processing the list.
-//
-// Parameters:
-//   - results: a slice of pointers to Result structs.
-//
-// Returns:
-//   - an error if one or more scraping operations fail.
+// scrapeAll iterates over a slice of Result pointers and scrapes their content.
+// It calls ScrapeContentInto for each Result and logs any errors encountered.
 func scrapeAll(results []*Result) error {
 	for _, result := range results {
 		if err := result.ScrapeContentInto(); err != nil {
@@ -282,10 +262,7 @@ func scrapeAll(results []*Result) error {
 	return nil
 }
 
-// printResult formats and prints a single result to standard output.
-//
-// Parameters:
-//   - res: a pointer to the Result struct to be printed.
+// printResult formats and prints the details of a Result object.
 func printResult(res *Result) {
 	fmt.Println("-------------------------------------------")
 	fmt.Printf("Title: %s\nURL: %s\nSnippet: %s\nContent: %s\nScore: %.4f\n\n",

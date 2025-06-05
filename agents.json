@@ -4,8 +4,8 @@
     "description": "Responsible for decomposing complex objectives into step-by-step tasks. Best suited for multi-step planning, workflows, and strategy generation.\n\nExample prompts:\n- 'Plan a 3-day trip to Tokyo.'\n- 'Break down how to launch a SaaS product.'\n- 'Create a weekly workout plan.'",
     "language": "English",
     "model": {
-      "name": "qwen3:latest",
-      "contextWindow": 40000,
+      "name": "qwen3:4b",
+      "contextWindow": 20000,
       "reasoning":true
     },
     "provider": {
@@ -51,7 +51,7 @@
     "description": "Combines insights from multiple agents or sources into a coherent, final response. Used after planning, search, or reasoning steps to produce a unified answer.\n\nExample prompts:\n- 'Summarize the plan and include the most up-to-date facts.'\n- 'Combine the research and generate a final report.'\n- 'Give me the conclusion from the planner and searcher results.'",
     "model": {
       "name": "qwen3:0.6b",
-      "contextWindow": 10000,
+      "contextWindow": 40000,
         "reasoning": true
     },
     "provider": {

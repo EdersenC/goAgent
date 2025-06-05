@@ -26,8 +26,8 @@ type Agent struct {
 	Tools        *ToolRegistry `json:"tools,omitempty"`
 }
 
+// Clone creates a deep copy of the Agent instance.
 func (a *Agent) Clone() *Agent {
-	// Create a deep copy of the Agent instance
 	agentCopy := &Agent{
 		Name:        a.Name,
 		Model:       a.Model,
@@ -83,6 +83,7 @@ func (a *Agent) RegisterTools(tools ...*Tool) {
 	a.Tools.RegisterTools(tools...)
 }
 
+// GetTools retrieves the agent's tool registry.
 func (a *Agent) GetTools() *ToolRegistry {
 	if a.Tools == nil {
 		a.Tools = NewToolRegistry()
@@ -90,6 +91,7 @@ func (a *Agent) GetTools() *ToolRegistry {
 	return a.Tools
 }
 
+// GetToolMap retrieves the internal map of tools from the agent's tool registry.
 func (a *Agent) GetToolMap() map[string]*Tool {
 	if a.Tools == nil {
 		a.Tools = NewToolRegistry()
@@ -97,6 +99,7 @@ func (a *Agent) GetToolMap() map[string]*Tool {
 	return a.Tools.GetToolMap()
 }
 
+// SwapRegistry swaps the agent's tool registry with a new one.
 func (a *Agent) SwapRegistry(registry *ToolRegistry) *ToolRegistry {
 	if a.Tools == nil {
 		a.Tools = NewToolRegistry()
@@ -104,8 +107,8 @@ func (a *Agent) SwapRegistry(registry *ToolRegistry) *ToolRegistry {
 	return a.Tools.Swap(registry)
 }
 
-// GetTools retrieves tools by their names from the agent.
-// It returns an error if any of the specified tools are not found.
+// GetToolsByName retrieves tools by their names from the agent's tool registry.
+// It returns an error if no tools are found for the specified names.
 func (a *Agent) GetToolsByName(name ...string) (*ToolRegistry, error) {
 	if a.Tools == nil {
 		a.Tools = NewToolRegistry()
@@ -161,6 +164,7 @@ func (p *Provider) getEmbeddingUrl() string {
 	return fmt.Sprintf("%s%s", p.BaseUrl, p.EmbeddingEndpoint)
 }
 
+// ProvideOllama creates a new Provider instance for Ollama with default settings.
 func ProvideOllama() *Provider {
 	return &Provider{
 		BaseUrl:           "http://localhost",
@@ -171,6 +175,15 @@ func ProvideOllama() *Provider {
 	}
 }
 
+func NewProvider(baseurl, generate, chat string) *Provider {
+	return &Provider{
+		BaseUrl:          baseurl,
+		GenerateEndpoint: generate,
+		ChatEndpoint:     chat,
+	}
+}
+
+// ProvideOllamaWithPort creates a new Provider instance for Ollama with a specified port.
 func LoadAgents(file *os.File, agents *map[string]*Agent) error {
 	bind := BindJSON(file, agents)
 	if bind != nil {
@@ -188,6 +201,7 @@ func (a *Agent) ContextPortion(percentage float64) int {
 	return int(float64(a.Model.ContextWindow) * (percentage / 100))
 }
 
+// ContextPortionFloat calculates the portion of the context window as a float64 value based on the given percentage.
 func (a *Agent) ContextPortionFloat(percentage float64) float64 {
 	if a.Model.ContextWindow <= 0 || percentage <= 0 {
 		return 0.0
@@ -195,6 +209,7 @@ func (a *Agent) ContextPortionFloat(percentage float64) float64 {
 	return float64(a.Model.ContextWindow) * (percentage / 100)
 }
 
+// embedChunked calculates the portion of the context window for embedding based on the given percentage.
 func (a *Agent) embedChunked(percentage float64) float64 {
 	if a.Model.ContextWindow <= 0 || percentage <= 0 {
 		return 0.0
@@ -208,6 +223,7 @@ type EmbeddedContent struct {
 	Embedding []float64 `json:"embedding"`
 }
 
+// Embed embeds the provided content by chunking it into smaller pieces and embedding each chunk.
 func (a *Agent) Embed(content string) ([]*EmbeddedContent, error) {
 	embeddingContents := make([]*EmbeddedContent, 0)
 	for _, chunk := range ChunkByTokens(content, a.ContextPortion(100)) {
@@ -223,12 +239,16 @@ func (a *Agent) Embed(content string) ([]*EmbeddedContent, error) {
 	return embeddingContents, nil
 }
 
+// EmbedChunk embeds a single chunk of content and returns the embedded content.
 func (a *Agent) EmbedChunk(content string) (*EmbeddedContent, error) {
 	url := a.Provider.getEmbeddingUrl()
 
 	payload := map[string]interface{}{
 		"model":  a.Model.Name,
 		"prompt": content,
+		"options": map[string]interface{}{
+			"num_ctx": a.Model.ContextWindow,
+		},
 	}
 
 	jsonData, err := marshalPayload(payload)
@@ -249,7 +269,7 @@ func (a *Agent) EmbedChunk(content string) (*EmbeddedContent, error) {
 	var result struct {
 		Embedding []float64 `json:"embedding"`
 	}
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err = json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("error decoding embedding: %w", err)
 	}
 	embeddingContents := &EmbeddedContent{
@@ -260,6 +280,8 @@ func (a *Agent) EmbedChunk(content string) (*EmbeddedContent, error) {
 
 	return embeddingContents, nil
 }
+
+// AsTool converts the agent into a tool that can be used in a chat context.
 func (a *Agent) AsTool(functionCall func(map[string]interface{}, *Chat) (map[string]interface{}, error)) *Tool {
 	tool := NewTool("agent", a.Name, a.Description, functionCall)
 	tool.Function.Parameters.AddProperty(
@@ -280,6 +302,7 @@ func (a *Agent) AsTool(functionCall func(map[string]interface{}, *Chat) (map[str
 }
 
 // SendMessage sends a message to the agent and returns the response.
+// It constructs the request payload, sends it to the agent's chat URL, and decodes the response.
 func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, error) {
 	url := c.Agent.Provider.GetChatUrl()
 
@@ -290,6 +313,9 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 		"stream":     stream,
 		"tools":      c.Agent.Tools.GetTools(),
 		"keep_alive": -1,
+		"options": map[string]interface{}{
+			"num_ctx": c.Agent.Model.ContextWindow,
+		},
 	}
 
 	jsonData, err := marshalPayload(payload)
@@ -313,11 +339,13 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 		return nil, err
 	}
 
-	c.AddMessage(chatResponse.Message.Role, chatResponse.Message.Content)
+	c.AddMessage(chatResponse.Message.Role, chatResponse.Message.Thinking+chatResponse.Message.Content)
 	c.RunTools(&chatResponse.Message)
 	return chatResponse, nil
 }
 
+// RunTools executes the tools specified in the message's tool calls.
+// It iterates over each tool call, retrieves the corresponding tool from the registry,
 func (c *Chat) RunTools(message *Message) {
 	if len(message.ToolCalls) > 0 {
 		for i, _ := range message.ToolCalls {
@@ -345,14 +373,6 @@ func (c *Chat) RunTools(message *Message) {
 	}
 }
 
-func NewProvider(baseurl, generate, chat string) *Provider {
-	return &Provider{
-		BaseUrl:          baseurl,
-		GenerateEndpoint: generate,
-		ChatEndpoint:     chat,
-	}
-}
-
 // Chat represents a conversation with an agent.
 type Chat struct {
 	Agent        *Agent        `json:"Agent"`
@@ -360,6 +380,7 @@ type Chat struct {
 	ToolRegistry *ToolRegistry `json:"omitempty"`
 }
 
+// NewChat creates a new Chat instance with the specified agent and tool registry.
 func NewChat(agent *Agent, registry *ToolRegistry) *Chat {
 	return &Chat{
 		Agent:        agent,
@@ -397,6 +418,7 @@ func (c *Chat) Swap(chat *Chat) *Chat {
 	return c
 }
 
+// AddMessage adds a new message to the chat.
 func (c *Chat) AddMessage(role, content string) {
 	localTime := time.Now()
 	formattedTime := localTime.Format("Mon,2006-01-02 03:04:05 PM MST -0700")
@@ -422,11 +444,13 @@ func (c *Chat) SendUserMessage(content string, stream bool) (*ChatResponse, erro
 	return c.SendMessage("user", content, stream)
 }
 
+// SendAssistantMessage sends an assistant message to the agent and returns the response.
 func (c *Chat) SendAssistantMessage(content string, stream bool) (*ChatResponse, error) {
 	content = "**Assistant Response**:\n " + content
 	return c.SendMessage("assistant", content, stream)
 }
 
+// SendSystemMessage sends a system message to the agent and returns the response.
 func (c *Chat) SendSystemMessage(content string, stream bool) (*ChatResponse, error) {
 	content = "**System Message**:\n " + content
 	return c.SendMessage("system", content, stream)
@@ -442,6 +466,7 @@ type Message struct {
 	Time      time.Time                `json:"time"`
 }
 
+// NewMessage creates a new Message instance with the specified role and content.
 func NewMessage(role, content string) *Message {
 	return &Message{
 		Role:    role,
@@ -506,10 +531,8 @@ func (m *Message) BindToolResults(key string, v ...interface{}) ([]any, error) {
 	return bindings, nil
 }
 
-func (m *Message) AddImage(image string) {
-	m.Images = append(m.Images, image)
-}
-func (m *Message) AddImages(images []string) {
+// AddImages adds one or more images to the message.
+func (m *Message) AddImages(images ...string) {
 	m.Images = append(m.Images, images...)
 }
 
@@ -530,6 +553,18 @@ type ChatResponse struct {
 type Tool struct {
 	Type     string       `json:"type"`
 	Function ToolFunction `json:"function,omitempty"`
+}
+
+// NewTool creates a new Tool instance with the specified type, name, description, and function call.
+func NewTool(Type, name, description string, functionCall func(map[string]interface{}, *Chat) (map[string]interface{}, error)) *Tool {
+	return &Tool{
+		Type: Type,
+		Function: ToolFunction{
+			Name:         name,
+			Description:  description,
+			FunctionCall: functionCall,
+		},
+	}
 }
 
 // AddConstraints adds one or more constraints to the tool function.
@@ -574,6 +609,7 @@ func (t *Tool) Clone() *Tool {
 	return toolCopy
 }
 
+// getFunctionCall retrieves the function call associated with the tool.
 func (t *Tool) getFunctionCall() (func(map[string]interface{}, *Chat) (map[string]interface{}, error), error) {
 	if t.Function.FunctionCall == nil {
 		return nil, fmt.Errorf("tool %s has no function call defined", t.Function.Name)
@@ -581,6 +617,7 @@ func (t *Tool) getFunctionCall() (func(map[string]interface{}, *Chat) (map[strin
 	return t.Function.FunctionCall, nil
 }
 
+// Call executes the tool's function call with the provided arguments and chat context.
 func (t *Tool) Call(arguments map[string]interface{}, chat *Chat) (map[string]interface{}, error) {
 	functionCall, err := t.getFunctionCall()
 	if err != nil {
@@ -593,6 +630,7 @@ func (t *Tool) Call(arguments map[string]interface{}, chat *Chat) (map[string]in
 	return results, nil
 }
 
+// AsPrompt formats the tool's function description, examples, and constraints into a prompt string.
 func (t *Tool) AsPrompt(maxExamples int) string {
 	examples := ""
 	if maxExamples < 0 {
@@ -643,17 +681,7 @@ type ToolParameterProperty struct {
 	Required    bool     `json:"required,omitempty"`
 }
 
-func NewTool(Type, name, description string, functionCall func(map[string]interface{}, *Chat) (map[string]interface{}, error)) *Tool {
-	return &Tool{
-		Type: Type,
-		Function: ToolFunction{
-			Name:         name,
-			Description:  description,
-			FunctionCall: functionCall,
-		},
-	}
-}
-
+// NewToolParameters creates a new ToolParameters instance with the specified type.
 func NewToolParameters(Type string) *ToolParameters {
 	return &ToolParameters{
 		Type:       Type,
@@ -662,6 +690,7 @@ func NewToolParameters(Type string) *ToolParameters {
 	}
 }
 
+// AddProperty adds a new property to the tool parameters.
 func (toolParameters *ToolParameters) AddProperty(propertyName, Type, description string, enum []string, required bool) {
 	if toolParameters.Properties == nil {
 		toolParameters.Properties = make(map[string]*ToolParameterProperty)
@@ -672,6 +701,7 @@ func (toolParameters *ToolParameters) AddProperty(propertyName, Type, descriptio
 	}
 }
 
+// NewToolParameterProperty creates a new ToolParameterProperty instance with the specified type, description, enum values, and required status.
 func NewToolParameterProperty(Type, description string, enum []string, required bool) *ToolParameterProperty {
 	return &ToolParameterProperty{
 		Type:        Type,
@@ -719,6 +749,7 @@ func (tr *ToolRegistry) GetTools() []*Tool {
 	return Tools
 }
 
+// Swap replaces the current tool registry with a new one and returns the previous tools.
 func (tr *ToolRegistry) Swap(registry *ToolRegistry) *ToolRegistry {
 	if registry == nil {
 		return tr

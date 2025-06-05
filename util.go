@@ -9,6 +9,7 @@ import (
 	"io"
 )
 
+// ReadJSONFile reads the content of a JSON file and returns it as a byte slice.
 func ReadJSONFile(file *os.File) ([]byte, error) {
 	defer func(path *os.File) {
 		err := path.Close()

@@ -19,6 +19,7 @@ type Trace struct {
 	EmbeddingAgent *goAgent.Agent
 }
 
+// NewTrace creates a new Trace instance with the provided user prompt and reason.
 func (t *Trace) FormatDuration() string {
 	if t.Duration <= 0 {
 		return "0ms"
@@ -26,6 +27,7 @@ func (t *Trace) FormatDuration() string {
 	return formatDuration(t.Duration)
 }
 
+// formatDuration formats the given duration in milliseconds into a human-readable string.
 func formatDuration(duration int64) string {
 	return (time.Duration(duration) * time.Millisecond).String()
 }
@@ -47,6 +49,7 @@ type Summary struct {
 	Duration int64
 }
 
+// newSummary creates a new Summary instance with the provided content and duration.
 func newSummary(summary string, duration int64) *Summary {
 	return &Summary{
 		Content:  summary,
@@ -54,6 +57,7 @@ func newSummary(summary string, duration int64) *Summary {
 	}
 }
 
+// NewSummary creates a new Summary for the Result with the provided content and duration.
 func (r *Result) NewSummary(summary string, duration int64) {
 	r.Summary = newSummary(summary, duration)
 }
@@ -68,6 +72,7 @@ type Result struct {
 	Score           float64
 }
 
+// FormatDuration formats the duration of the Result's summary into a human-readable string.
 func (r *Result) FormatDuration() string {
 	if r.Summary.Duration <= 0 {
 		return "0ms"
@@ -75,6 +80,7 @@ func (r *Result) FormatDuration() string {
 	return formatDuration(r.Summary.Duration)
 }
 
+// getSummary retrieves the summary content from the Result.
 func (r *Result) getSummary() string {
 	if r.Summary == nil {
 		return ""
@@ -82,6 +88,8 @@ func (r *Result) getSummary() string {
 	return r.Summary.Content
 }
 
+// Summarize generates a summary of the Result's content using the provided chat agent and instructions.
+// It chunks the content if it exceeds the maximum context size and processes each chunk to create a summary.
 func (r *Result) Summarize(chat *goAgent.Chat, instructions string, maxContext int) string {
 	if r.getSummary() != "" {
 		return r.getSummary()
@@ -179,6 +187,7 @@ func NewResult(title, url, snippet, content, summary string, score float64) *Res
 	}
 }
 
+// NewTrace creates a new Trace instance with the provided prompt and reason.
 func NewTrace(prompt, reason string) *Trace {
 	return &Trace{
 		UserPrompt: prompt,
@@ -188,6 +197,7 @@ func NewTrace(prompt, reason string) *Trace {
 	}
 }
 
+// NewPageDigest creates a new PageDigest with the provided results, summary, and ranked results.
 func NewPageDigest(results []*Result, summary string, ranked []*Result) *PageDigest {
 	return &PageDigest{
 		Results: results,
@@ -198,6 +208,7 @@ func NewPageDigest(results []*Result, summary string, ranked []*Result) *PageDig
 	}
 }
 
+// NewBundle creates a new Bundle with the provided query and page digests.
 func NewBundle(query string, digests ...*PageDigest) *Bundle {
 	p := make([]PageDigest, 0, len(digests))
 	for _, d := range digests {

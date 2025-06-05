@@ -23,6 +23,7 @@ func init() {
 	goAgent.InitTool(ResponseTool, "respond.json", PrintResponse)
 }
 
+// PrintResponse is a tool that prints the response message from the search results.
 func PrintResponse(response map[string]interface{}, chat *goAgent.Chat) (map[string]interface{}, error) {
 	arguments, ok := response["arguments"].(map[string]interface{})
 	if !ok {
@@ -44,6 +45,9 @@ func (d DuckDuckGo) Trace() *search.Trace {
 	panic("implement me")
 }
 
+// Search performs a search on DuckDuckGo using the provided query and page number.
+// It returns a slice of search results or an error if the search fails.
+// The search is performed by sending a POST request to the DuckDuckGo HTML endpoint.
 func (d DuckDuckGo) Search(query string, page int) ([]*search.Result, error) {
 	offset := (page - 1) * 10
 	data := url.Values{
@@ -90,8 +94,10 @@ func (d DuckDuckGo) Search(query string, page int) ([]*search.Result, error) {
 	return results, nil
 }
 
-var Relevancy = 50.0
+// Relevancy is the threshold for relevance in search results.
+var Relevancy = 60.0
 
+// initSearch initializes the search tool with the provided request and chat context.
 func initSearch(request map[string]interface{}, chat *goAgent.Chat) (map[string]interface{}, error) {
 	arguments, err := extractArguments(request)
 	if err != nil {
@@ -138,6 +144,7 @@ func initSearch(request map[string]interface{}, chat *goAgent.Chat) (map[string]
 	return map[string]interface{}{"summary": trace}, nil
 }
 
+// extractArguments extracts the "arguments" field from the request map.
 func extractArguments(args map[string]interface{}) (map[string]interface{}, error) {
 	arguments, ok := args["arguments"].(map[string]interface{})
 	if !ok {
@@ -146,6 +153,7 @@ func extractArguments(args map[string]interface{}) (map[string]interface{}, erro
 	return arguments, nil
 }
 
+// parsePageNumber parses the "page" parameter from the request.
 func parsePageNumber(raw interface{}) (int, error) {
 	pageStr, ok := raw.(string)
 	if !ok || pageStr == "" {
@@ -158,6 +166,7 @@ func parsePageNumber(raw interface{}) (int, error) {
 	return pageNumber, nil
 }
 
+// executeQueries executes the search queries using the provided engine and chat context.
 func executeQueries(engine search.Engine, chat *goAgent.Chat, queries []string, prompt, reason string, pageNumber int) *search.Trace {
 	if chat == nil {
 		chat = goAgent.NewChat(goAgent.PlannerAgent, goAgent.NewToolRegistry())
@@ -174,6 +183,8 @@ func executeQueries(engine search.Engine, chat *goAgent.Chat, queries []string, 
 	return tracer
 }
 
+// normalizeQueries normalizes the input queries into a slice of strings.
+// It handles various input formats including slices, strings, and JSON-like structures.
 func normalizeQueries(raw interface{}) ([]string, error) {
 	switch v := raw.(type) {
 

@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+// DecodeChatResponse reads the response body and decodes it into a ChatResponse struct.
+// It also extracts tool calls and thinking content from the message.
 func DecodeChatResponse(body io.Reader) (*ChatResponse, error) {
 	bodyBytes, err := io.ReadAll(body)
 	if err != nil {
@@ -74,6 +76,7 @@ func (cr *ChatResponse) ExtractFinalContent() string {
 	return strings.TrimSpace(content)
 }
 
+// PrintFullResponse prints the full details of the ChatResponse in a human-readable format.
 func (cr *ChatResponse) PrintFullResponse() {
 	fmt.Printf("Model: %s\n", cr.Model)
 	fmt.Printf("Created At: %s\n", cr.CreatedAt.Format(time.RFC3339))
@@ -93,14 +96,17 @@ func (cr *ChatResponse) PrintFullResponse() {
 	}
 }
 
+// PrintThoughts prints the thinking content extracted from the message.
 func (cr *ChatResponse) PrintThoughts() {
 	fmt.Println("=====================\nThoughts:\n", cr.Message.Thinking)
 }
 
+// PrintContent prints the final content of the message after removing tool calls and thinking blocks.
 func (cr *ChatResponse) PrintContent() {
 	fmt.Println("=====================\nContents:\n", cr.Message.Content)
 }
 
+// marshalPayload converts a payload to JSON format.
 func marshalPayload(payload any) ([]byte, error) {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -109,6 +115,7 @@ func marshalPayload(payload any) ([]byte, error) {
 	return jsonData, nil
 }
 
+// createPostRequest creates a new HTTP POST request with the given URL and JSON data.
 func createPostRequest(url string, jsonData []byte) (*http.Request, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -118,6 +125,7 @@ func createPostRequest(url string, jsonData []byte) (*http.Request, error) {
 	return req, nil
 }
 
+// doRequest sends the HTTP request and returns the response body as a byte slice.
 func doRequest(req *http.Request) ([]byte, error) {
 	resp, err := client.Do(req)
 	if err != nil {
@@ -163,6 +171,7 @@ func ChunkByTokens(text string, limit int) []string {
 	return chunks
 }
 
+// InitTool initializes a Tool instance by loading its configuration from a JSON file.
 func InitTool(tool *Tool, fileName string, function func(map[string]interface{}, *Chat) (map[string]interface{}, error)) {
 	toolJson, err := os.Open(fileName)
 	if err != nil {
@@ -179,6 +188,7 @@ func InitTool(tool *Tool, fileName string, function func(map[string]interface{},
 	}
 }
 
+// LoadTool loads a Tool configuration from a JSON file into the provided Tool struct.
 func LoadTool(file *os.File, tool *Tool) error {
 	bind := BindJSON(file, tool)
 	if bind != nil {

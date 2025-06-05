@@ -195,7 +195,7 @@ func chatLoop() {
 		}
 		response.PrintThoughts()
 		response.PrintContent()
-		fmt.Println("\n\nTotal duration:", time.Since(loopTime))
+		fmt.Println("\n\nduration:", time.Since(loopTime))
 	}
 
 	fmt.Println("\nChat session ended. Total duration:", time.Since(totalTime))
