@@ -142,7 +142,7 @@ Behind the scenes, the agent might:
 
 ## 🤝 Contributing
 
-This SDK is actively being built to learn and build LLM driven apliactions — if you:
+This SDK is actively being built to learn and build LLM driven applications — if you:
 
 - Use Go
 - Are curious about LLMs
