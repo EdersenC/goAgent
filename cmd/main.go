@@ -165,7 +165,7 @@ Ready to dive in and ace that next challenge? 🚀
 
 func chatLoop() {
 	goAgent.PlannerAgent.SystemPrompt = systemPrompt
-	toolRegistry.RegisterTools(tools.SearchTool) // Make sure `tool` is defined
+	toolRegistry.RegisterTools(tools.SearchTool)
 	goAgent.PlannerAgent.Tools = toolRegistry
 	chat := goAgent.NewChat(goAgent.PlannerAgent, toolRegistry)
 	chat.AddMessage("system", goAgent.PlannerAgent.SystemPrompt)
@@ -201,19 +201,21 @@ func chatLoop() {
 	fmt.Println("\nChat session ended. Total duration:", time.Since(totalTime))
 }
 
-func Search(query string) {
-	trace := search.NewTrace("summarize this ", query)
+func Search(queries []string) {
+	trace := search.NewTrace("summarize this ", "Personal Request")
 	trace.Chat = goAgent.NewChat(goAgent.SummaryAgent, goAgent.NewToolRegistry())
-	err := search.RunQuery(
-		tools.DuckDuckGo{},
-		query,
-		trace,
-		1,
-		0.55,
-	)
-	if err != nil {
-		fmt.Println("No results found for query:", query)
-		return
+	for _, query := range queries {
+		err := search.RunQuery(
+			tools.DuckDuckGo{},
+			query,
+			trace,
+			1,
+			60,
+		)
+		if err != nil {
+			fmt.Println("No results found for query:", query)
+			return
+		}
 	}
 	fmt.Println("Search completed successfully.")
 	fmt.Println("Total duration:", trace.FormatDuration())
@@ -222,5 +224,6 @@ func Search(query string) {
 func main() {
 	tokens := goAgent.Tokenize(systemPrompt)
 	fmt.Printf("System prompt token count: %d tokens\n", tokens)
+	//queries := []string{"iran vs israel", "Elon musk vs donald trump", "New go lang tools"}
 	chatLoop()
 }

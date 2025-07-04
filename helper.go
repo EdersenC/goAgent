@@ -27,6 +27,10 @@ func DecodeChatResponse(body io.Reader) (*ChatResponse, error) {
 		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
 	}
 
+	if response.Message.Content == "" {
+		return nil, fmt.Errorf("empty content in response message:%s", string(bodyBytes))
+	}
+
 	response.Message.Raw = response.Message.Content
 	response.Message.ToolCalls = append(response.Message.ToolCalls, response.ExtractToolCalls()...)
 	response.Message.Thinking = response.ExtractThinking()
@@ -141,6 +145,13 @@ func doRequest(req *http.Request) ([]byte, error) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response: %w", err)
+	}
+
+	var errResp map[string]interface{}
+	if err = json.Unmarshal(body, &errResp); err == nil {
+		if msg, ok := errResp["error"].(string); ok && msg != "" {
+			panic(fmt.Sprintf("API error: %s", msg))
+		}
 	}
 	return body, nil
 }

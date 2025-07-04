@@ -127,7 +127,7 @@ func rankByRelevance(results []*Result, query string, minimumThreshHold float64)
 		if results[i].Score < minimumThreshHold {
 			continue
 		}
-		fmt.Println("Ranking Results for:", results[i].Title, "Score:", results[i].Score)
+		fmt.Printf("%s Meet Relevancy requirments Score: %f\n", results[i].Title, results[i].Score)
 		rankedResults = append(rankedResults, results[i])
 	}
 
@@ -154,12 +154,7 @@ func init() {
 // handlePage processes a single page of search results.
 // It checks the cache for existing results, performs a search if not found,
 // scrapes the content, ranks the results by relevance, and summarizes them.
-func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRelevancy float64) ([]*Result, error) {
-	if cachedResults, found := cache[query]; found {
-		fmt.Printf("\n\nUsing cached results for query: %s, page: %d\n\n", query, page)
-		return cachedResults, nil
-	}
-
+func handlePage(engine Engine, query string, page int) ([]*Result, error) {
 	results, err := engine.Search(query, page)
 	if err != nil {
 		return nil, fmt.Errorf("search error: %w", err)
@@ -170,16 +165,10 @@ func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRel
 		return nil, fmt.Errorf("scraping error: %w", err)
 	}
 
-	rankedResults, err := rankByRelevance(results, query, minimumRelevancy)
-	if err != nil {
-		return nil, fmt.Errorf("ranking error: %w", err)
-	}
-	if len(rankedResults) == 0 {
-		return rankedResults, nil // No results meet the relevancy threshold
-	}
-	fmt.Println("Ranked results for query:", query, "Page:", page, "Results:", len(rankedResults))
-	tracer.AttachBundle(NewBundle(query, NewPageDigest(results, "", rankedResults)))
+	return results, nil
+}
 
+func workSummaries(tracer *Trace, rankedResults []*Result) {
 	agentTools := tracer.Chat.Agent.SwapRegistry(goAgent.NewToolRegistry(searchExtraction)) // Use only the SearchExtraction tool for this Chat
 	ToolRegistry := tracer.Chat.ToolRegistry.Swap(goAgent.NewToolRegistry(searchExtraction))
 	message := " IF not Relevant say 'No results found' and exit.\n\n"
@@ -189,7 +178,6 @@ func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRel
 	tracer.SummaryAgents = make([]*goAgent.Agent, 0)
 	tracer.SummaryAgents = append(tracer.SummaryAgents,
 		goAgent.SummaryAgent,
-		goAgent.SummaryAgent.WithPort("11436"),
 	)
 
 	var wg sync.WaitGroup
@@ -200,7 +188,7 @@ func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRel
 			chat := goAgent.NewChat(tracer.SummaryAgents[workerID], goAgent.NewToolRegistry(newExtraction))
 			for result := range jobs { // pull jobs from the channel
 				fmt.Printf("Worker %d summarizing: %s URL: %s\n", workerID, result.Title, result.URL)
-				result.Summarize(
+				result.ExtractInformation(
 					chat,
 					message,
 					chat.Agent.ContextPortion(75),
@@ -220,35 +208,29 @@ func handlePage(engine Engine, tracer *Trace, query string, page int, minimumRel
 
 	tracer.Chat.Agent.SwapRegistry(agentTools) // Restore original tools after summarization
 	tracer.Chat.ToolRegistry.Swap(ToolRegistry)
-	return rankedResults, nil
 }
 
 // RunQuery executes a search query using the specified engine and tracer.
 // It handles pagination, caches results, and summarizes the findings.
-func RunQuery(engine Engine, query string, tracer *Trace, pages int, minimumRelevancy float64) error {
-	allRankedResults := make([]*Result, 0)
-	start := time.Now()
-
+func RunQuery(engine Engine, query string, tracer *Trace, pages int, minimumRelevance float64) error {
 	tracer.Chat.Agent = goAgent.SummaryAgent
-
+	var pageDigest []*PageDigest
 	for page := 1; page <= pages; page++ {
-		pageResults, err := handlePage(engine, tracer, query, page, minimumRelevancy)
+		pageResults, err := handlePage(engine, query, page)
 		if err != nil {
 			fmt.Println("Error handling page:", err)
 			continue
 		}
-		allRankedResults = append(allRankedResults, pageResults...)
-		cache[query] = pageResults
+		rankedResults, err := rankByRelevance(pageResults, query, minimumRelevance)
+		if err != nil {
+			return err
+		}
+		pageDigest = append(pageDigest, NewPageDigest(rankedResults))
 	}
-	if len(allRankedResults) == 0 {
-		return fmt.Errorf("no results found for query: %s", query)
-	}
-	tracer.Duration = time.Since(start).Milliseconds()
+	bundle := NewBundle(query, pageDigest...)
+	tracer.AttachBundle(bundle)
+	cache[query] = bundle
 	return nil
-}
-
-func (t *Trace) Summarize(chat *goAgent.Chat) string {
-	return ""
 }
 
 // scrapeAll iterates over a slice of Result pointers and scrapes their content.
@@ -260,12 +242,4 @@ func scrapeAll(results []*Result) error {
 		}
 	}
 	return nil
-}
-
-// printResult formats and prints the details of a Result object.
-func printResult(res *Result) {
-	fmt.Println("-------------------------------------------")
-	fmt.Printf("Title: %s\nURL: %s\nSnippet: %s\nContent: %s\nScore: %.4f\n\n",
-		res.Title, res.URL, res.Snippet, res.getSummary(), res.Score)
-	fmt.Println("-------------------------------------------")
 }

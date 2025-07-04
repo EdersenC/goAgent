@@ -9,7 +9,7 @@ import (
 )
 
 var client = &http.Client{
-	Timeout: 10 * time.Minute, // Set a timeout for requests
+	Timeout: 20 * time.Minute, // Set a timeout for requests
 }
 
 var EmbeddingAgent *Agent
@@ -314,7 +314,7 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 		"tools":      c.Agent.Tools.GetTools(),
 		"keep_alive": -1,
 		"options": map[string]interface{}{
-			"num_ctx": c.Agent.Model.ContextWindow,
+			"num_ctx": Tokenize(content) + 1024, // todo magic num find more dynamic approach
 		},
 	}
 
@@ -335,7 +335,6 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 
 	chatResponse, err := DecodeChatResponse(resp.Body)
 	if err != nil {
-		fmt.Println("decode error:", err)
 		return nil, err
 	}
 
@@ -718,14 +717,14 @@ type ToolRegistry struct {
 
 // NewToolRegistry creates a new tool registry.
 func NewToolRegistry(tool ...*Tool) *ToolRegistry {
+	registry := &ToolRegistry{Tools: make(map[string]*Tool)}
 	if len(tool) > 0 {
-		registry := &ToolRegistry{Tools: make(map[string]*Tool)}
 		for _, t := range tool {
 			registry.RegisterTool(t)
 		}
 		return registry
 	}
-	return &ToolRegistry{Tools: make(map[string]*Tool)}
+	return registry
 }
 
 // RegisterTool adds a single tool to the registry.

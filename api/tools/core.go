@@ -94,8 +94,8 @@ func (d DuckDuckGo) Search(query string, page int) ([]*search.Result, error) {
 	return results, nil
 }
 
-// Relevancy is the threshold for relevance in search results.
-var Relevancy = 60.0
+// RELEVANCY is the threshold for relevance in search results.
+var RELEVANCY = 60.0
 
 // initSearch initializes the search tool with the provided request and chat context.
 func initSearch(request map[string]interface{}, chat *goAgent.Chat) (map[string]interface{}, error) {
@@ -130,8 +130,11 @@ func initSearch(request map[string]interface{}, chat *goAgent.Chat) (map[string]
 	traceChat := goAgent.NewChat(chat.Agent, goAgent.NewToolRegistry())
 	trace := executeQueries(engine, traceChat, queries, prompt, reason, pageNumber)
 	instruction := "Search results Completed."
-
-	summarySection := fmt.Sprintf("**Search Summary**:\n%s", trace.Summarize(chat))
+	summary, err := trace.Summarize(chat)
+	if err != nil {
+		return nil, err
+	}
+	summarySection := fmt.Sprintf("**Search Summary**:\n%s", summary)
 
 	fullMessage := instruction + "\n\n" + summarySection
 
@@ -174,7 +177,7 @@ func executeQueries(engine search.Engine, chat *goAgent.Chat, queries []string, 
 	tracer := search.NewTrace(prompt, reason)
 	tracer.Chat = chat
 	for _, query := range queries {
-		err := search.RunQuery(engine, query, tracer, pageNumber, Relevancy)
+		err := search.RunQuery(engine, query, tracer, pageNumber, RELEVANCY)
 		if err != nil {
 			continue
 		}

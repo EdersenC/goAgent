@@ -51,12 +51,12 @@
     "description": "Combines insights from multiple agents or sources into a coherent, final response. Used after planning, search, or reasoning steps to produce a unified answer.\n\nExample prompts:\n- 'Summarize the plan and include the most up-to-date facts.'\n- 'Combine the research and generate a final report.'\n- 'Give me the conclusion from the planner and searcher results.'",
     "model": {
       "name": "qwen3:0.6b",
-      "contextWindow": 40000,
+      "contextWindow": 20000,
         "reasoning": true
     },
     "provider": {
       "baseurl": "http://localhost",
-      "port": "11435",
+      "port": "11434",
       "generateEndpoint": "/api/generate",
       "chatEndpoint": "/api/chat",
       "apiKey": ""
