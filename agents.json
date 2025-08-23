@@ -71,7 +71,7 @@
     },
     "provider": {
       "baseurl": "http://localhost",
-      "port": "11435",
+      "port": "11434",
       "embeddingEndpoint": "/api/embeddings",
       "apiKey": ""
     }

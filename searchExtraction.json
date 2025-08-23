@@ -29,12 +29,12 @@
                 "type": "string",
                 "description": "Full sentence or paragraph extracted from the content."
               },
-              "url": {
+              "title": {
                 "type": "string",
-                "description": "Source URL for the extracted content."
+                "description": "title for the extracted content."
               }
             },
-            "required": ["content", "url"]
+            "required": ["content", "title"]
           }
         },
         "summary": {

@@ -187,9 +187,29 @@ func (t *Trace) SortByContextSize() {
 	})
 }
 
+func ExtractInformation(data string, contextSize int) string {
+	chat := goAgent.NewChat(goAgent.SummaryAgent, goAgent.NewToolRegistry(searchExtraction.Clone()))
+	instructions := "Summarize this Article and extract relevant info"
+	summary, err := summariseChunk(data, instructions, contextSize, chat)
+	if err != nil {
+		fmt.Println("Error summarizing chunk:", err)
+		return ""
+	}
+	return summary
+}
+
 func (t *Trace) MeetContextSize(agents []*goAgent.Agent, contextSize int) {
+	var summary strings.Builder
+	extractedData := make([]string, 0)
 	for _, bundle := range t.Bundles {
-		bundle.LowerContextSize(agents, contextSize)
+		if goAgent.Tokenize(summary.String()) >= contextSize {
+			extractedData = append(extractedData, ExtractInformation(summary.String(), contextSize))
+			summary.Reset()
+		}
+		if bundle.getTotalContextSize() > contextSize {
+			bundle.LowerContextSize(agents, contextSize)
+		}
+		summary.WriteString(bundle.String())
 	}
 }
 
@@ -206,6 +226,8 @@ func (t *Trace) Summarize(chat *goAgent.Chat) (string, error) {
 	maxContext := chat.Agent.ContextPortion(75)
 	t.MeetContextSize(t.SummaryAgents, maxContext)
 	builder.WriteString(t.FormatResults())
+	fmt.Println("Total Context Size:", t.getTotalContextSize())
+	fmt.Println("FormatedResults Size:", goAgent.Tokenize(t.FormatResults()))
 	return builder.String(), nil
 }
 

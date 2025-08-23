@@ -221,7 +221,7 @@ func RunQuery(engine Engine, query string, tracer *Trace, pages int, minimumRele
 			fmt.Println("Error handling page:", err)
 			continue
 		}
-		rankedResults, err := rankByRelevance(pageResults, query, minimumRelevance)
+		rankedResults, err := rankByRelevance(pageResults, query, minimumRelevance) //todo: Rank all after scraping
 		if err != nil {
 			return err
 		}
