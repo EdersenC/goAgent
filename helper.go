@@ -118,21 +118,24 @@ func createPostRequest(url string, jsonData []byte) (*http.Request, error) {
 	return req, nil
 }
 
-func doRequest(req *http.Request) ([]byte, error) {
+func doRequest(req *http.Request) (body []byte, err error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-
+		if closeErr := Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("error closing response body: %w", closeErr)
 		}
 	}(resp.Body)
 
-	body, err := io.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return body, fmt.Errorf("unexpected status code %s: %s", resp.Status, bytes.TrimSpace(body))
 	}
 	return body, nil
 }
