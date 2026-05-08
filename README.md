@@ -165,10 +165,13 @@ To verify core build/run behavior after modernization changes:
 ```bash
 go test ./...
 go build ./...
+# Interactive/manual run check (starts REPL loop)
 go run ./cmd/main.go
+# Optional non-interactive smoke check
+go run ./cmd/main.go < /dev/null
 ```
 
 Current isolated runner results:
 
 - `go test ./...` passes.
-- `go build ./...` and `go run ./cmd/main.go` are blocked in this sandbox by `snap-confine` capability restrictions, not by a compile/test failure in project code.
+- `go build ./...` and `go run ./cmd/main.go` checks are blocked in this sandbox by `snap-confine` capability restrictions, not by a compile/test failure in project code.

@@ -3,6 +3,6 @@
   "private": true,
   "scripts": {
     "test": "go test ./...",
-    "build": "go test ./..."
+    "build": "go build ./..."
   }
 }
