@@ -17,6 +17,9 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	defer func() {
+		_ = agentsFolder.Close()
+	}()
 	toolRegistry = goAgent.NewToolRegistry()
 	err = goAgent.LoadAgents(agentsFolder, &agents)
 	if err != nil {

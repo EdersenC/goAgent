@@ -17,8 +17,14 @@ func (r *Result) ScrapeContentInto() error {
 	if !strings.HasPrefix(r.URL, "https://") {
 		return fmt.Errorf("skipping non-HTTPS URL: %s", r.URL)
 	}
+	if goAgent.EmbeddingAgent == nil {
+		return fmt.Errorf("embedding agent is not configured")
+	}
 
-	req, _ := http.NewRequest("GET", r.URL, nil)
+	req, err := http.NewRequest("GET", r.URL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create scrape request: %w", err)
+	}
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -32,6 +38,10 @@ func (r *Result) ScrapeContentInto() error {
 
 		}
 	}(resp.Body)
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("scrape request failed with status %d", resp.StatusCode)
+	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {

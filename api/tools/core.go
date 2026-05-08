@@ -51,7 +51,10 @@ func (d DuckDuckGo) Search(query string, page int) ([]*search.Result, error) {
 		"s": {fmt.Sprintf("%d", offset)},
 	}
 
-	req, _ := http.NewRequest("POST", "https://html.duckduckgo.com/html/", strings.NewReader(data.Encode()))
+	req, err := http.NewRequest("POST", "https://html.duckduckgo.com/html/", strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create search request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 
@@ -68,6 +71,10 @@ func (d DuckDuckGo) Search(query string, page int) ([]*search.Result, error) {
 
 		}
 	}(resp.Body)
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("duckduckgo request failed with status %d", resp.StatusCode)
+	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {

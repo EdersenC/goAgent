@@ -69,6 +69,9 @@ type Result struct {
 }
 
 func (r *Result) FormatDuration() string {
+	if r == nil || r.Summary == nil {
+		return "0ms"
+	}
 	if r.Summary.Duration <= 0 {
 		return "0ms"
 	}

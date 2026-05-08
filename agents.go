@@ -3,6 +3,7 @@ package goAgent
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -224,6 +225,12 @@ func (a *Agent) Embed(content string) ([]*EmbeddedContent, error) {
 }
 
 func (a *Agent) EmbedChunk(content string) (*EmbeddedContent, error) {
+	if a == nil {
+		return nil, fmt.Errorf("agent is nil")
+	}
+	if a.Provider == nil {
+		return nil, fmt.Errorf("agent provider is nil")
+	}
 	url := a.Provider.getEmbeddingUrl()
 
 	payload := map[string]interface{}{
@@ -281,6 +288,15 @@ func (a *Agent) AsTool(functionCall func(map[string]interface{}, *Chat) (map[str
 
 // SendMessage sends a message to the agent and returns the response.
 func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, error) {
+	if c == nil || c.Agent == nil {
+		return nil, fmt.Errorf("chat or chat agent is nil")
+	}
+	if c.Agent.Provider == nil {
+		return nil, fmt.Errorf("chat agent provider is nil")
+	}
+	if c.Agent.Tools == nil {
+		c.Agent.Tools = NewToolRegistry()
+	}
 	url := c.Agent.Provider.GetChatUrl()
 
 	c.AddMessage(role, content)
@@ -305,6 +321,13 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("chat request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	chatResponse, err := DecodeChatResponse(resp.Body)
