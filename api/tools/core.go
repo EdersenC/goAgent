@@ -9,6 +9,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -19,8 +22,23 @@ var ResponseTool = &goAgent.Tool{}
 
 // todo refactor so that we add more fields to engine interface
 func init() {
-	goAgent.InitTool(SearchTool, "search.json", initSearch)
-	goAgent.InitTool(ResponseTool, "respond.json", PrintResponse)
+	goAgent.InitTool(SearchTool, resolveToolConfigPath("search.json"), initSearch)
+	goAgent.InitTool(ResponseTool, resolveToolConfigPath("respond.json"), PrintResponse)
+}
+
+func resolveToolConfigPath(name string) string {
+	if _, err := os.Stat(name); err == nil {
+		return name
+	}
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return name
+	}
+	rootRelative := filepath.Join(filepath.Dir(thisFile), "..", "..", name)
+	if _, err := os.Stat(rootRelative); err == nil {
+		return rootRelative
+	}
+	return name
 }
 
 func PrintResponse(response map[string]interface{}, chat *goAgent.Chat) (map[string]interface{}, error) {
@@ -40,8 +58,7 @@ type DuckDuckGo struct {
 }
 
 func (d DuckDuckGo) Trace() *search.Trace {
-
-	panic("implement me")
+	return search.NewTrace("", "")
 }
 
 func (d DuckDuckGo) Search(query string, page int) ([]*search.Result, error) {

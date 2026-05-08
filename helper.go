@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -164,7 +166,7 @@ func ChunkByTokens(text string, limit int) []string {
 }
 
 func InitTool(tool *Tool, fileName string, function func(map[string]interface{}, *Chat) (map[string]interface{}, error)) {
-	toolJson, err := os.Open(fileName)
+	toolJson, err := os.Open(resolveToolPath(fileName))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -177,6 +179,28 @@ func InitTool(tool *Tool, fileName string, function func(map[string]interface{},
 	if function != nil {
 		tool.Function.FunctionCall = function
 	}
+}
+
+func resolveToolPath(fileName string) string {
+	if _, err := os.Stat(fileName); err == nil {
+		return fileName
+	}
+	_, callerFile, _, ok := runtime.Caller(2)
+	if !ok {
+		return fileName
+	}
+	callerDir := filepath.Dir(callerFile)
+	candidates := []string{
+		filepath.Join(callerDir, fileName),
+		filepath.Join(callerDir, "..", fileName),
+		filepath.Join(callerDir, "..", "..", fileName),
+	}
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return fileName
 }
 
 func LoadTool(file *os.File, tool *Tool) error {
