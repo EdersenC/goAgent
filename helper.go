@@ -66,6 +66,28 @@ var (
 	reTool  = regexp.MustCompile(`(?s)<tool_call>.*?</tool_call>`)
 )
 
+const maxErrorBodyPreviewBytes = 2048
+
+func readBodyPreview(body io.Reader, limit int64) string {
+	if body == nil || limit <= 0 {
+		return ""
+	}
+	limited := io.LimitReader(body, limit+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return ""
+	}
+	truncated := int64(len(data)) > limit
+	if truncated {
+		data = data[:limit]
+	}
+	preview := strings.TrimSpace(string(data))
+	if truncated {
+		return preview + "...(truncated)"
+	}
+	return preview
+}
+
 // Returns cleaned message content with <think> and <tool_call> blocks removed (no side effects).
 func (cr *ChatResponse) ExtractFinalContent() string {
 	content := cr.Message.Content
@@ -135,7 +157,8 @@ func doRequest(req *http.Request) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response: %w", err)
 	}
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		bodyPreview := readBodyPreview(bytes.NewReader(body), maxErrorBodyPreviewBytes)
+		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, bodyPreview)
 	}
 	return body, nil
 }

@@ -3,7 +3,6 @@ package goAgent
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -294,7 +293,9 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 	if c.Agent.Provider == nil {
 		return nil, fmt.Errorf("chat agent provider is nil")
 	}
-	if c.Agent.Tools == nil {
+	if c.ToolRegistry != nil {
+		c.Agent.Tools = c.ToolRegistry
+	} else if c.Agent.Tools == nil {
 		c.Agent.Tools = NewToolRegistry()
 	}
 	url := c.Agent.Provider.GetChatUrl()
@@ -326,8 +327,8 @@ func (c *Chat) SendMessage(role, content string, stream bool) (*ChatResponse, er
 		_ = resp.Body.Close()
 	}()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("chat request failed with status %d: %s", resp.StatusCode, string(body))
+		bodyPreview := readBodyPreview(resp.Body, maxErrorBodyPreviewBytes)
+		return nil, fmt.Errorf("chat request failed with status %d: %s", resp.StatusCode, bodyPreview)
 	}
 
 	chatResponse, err := DecodeChatResponse(resp.Body)
