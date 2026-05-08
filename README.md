@@ -155,3 +155,7 @@ Feel free to open issues, ideas, or PRs! def need ideas on architecture
 ## 📜 License
 
 MIT License
+
+## Repository Audit
+
+A focused modernization audit and small-PR upgrade plan is tracked in [`REPOSITORY_AUDIT.md`](REPOSITORY_AUDIT.md).
