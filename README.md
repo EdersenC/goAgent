@@ -155,3 +155,20 @@ Feel free to open issues, ideas, or PRs! def need ideas on architecture
 ## 📜 License
 
 MIT License
+
+---
+
+## Regression Validation
+
+To verify core build/run behavior after modernization changes:
+
+```bash
+go test ./...
+go build ./...
+go run ./cmd/main.go
+```
+
+Current isolated runner results:
+
+- `go test ./...` passes.
+- `go build ./...` and `go run ./cmd/main.go` are blocked in this sandbox by `snap-confine` capability restrictions, not by a compile/test failure in project code.

@@ -1,0 +1,8 @@
+{
+  "name": "water-regression",
+  "private": true,
+  "scripts": {
+    "test": "go test ./...",
+    "build": "go test ./..."
+  }
+}
